@@ -120,9 +120,7 @@ def destroy_camera():
     print('Destroyed all created devices')
 
 
-
 if __name__ == "__main__":
-    camera_six = []
     camera_six = think_lucid_init()
     while True:
         str = input("Please input Y/N(Y is start trigger, N is stop camera and quit): ")

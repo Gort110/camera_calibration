@@ -4,23 +4,9 @@ import numpy as np
 import cv2 as cv
 import glob
 import Trigger_Hardware
-import os
+import init_image
 
-
-def clean_exit_image():
-    """
-    cleaning the exist image, including .png, .jpg.
-    """
-    image_png_exist = glob.glob("*.png")
-    for img_png in image_png_exist:
-        os.remove(img_png)
-
-    image_jpg_exist = glob.glob("*.jpg")
-    for img_jpg in image_jpg_exist:
-        os.remove(img_jpg)
-
-
-def calibration_camera(images, mgrid_board, criteria, squaresize):
+def calibration_camera_mgrid_board(images, mgrid_board, criteria, squaresize):
     """
     calibration camera
     Parameters: images
@@ -68,31 +54,30 @@ def calibration_camera(images, mgrid_board, criteria, squaresize):
     return mtx, dist, mean_error
 
 
-criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
-mgrid_board = (11, 8)
-squaresize = 30 # girdm size 30mm*30mm
-
-clean_exit_image()
-# Get camera image, at least 10pcs
-camera_lucid = []
-camera_serialnumber = {}
-calibration_image_count = 10  # image pcs
-camera_lucid = Trigger_Hardware.think_lucid_init()
-for j in range(len(camera_lucid)):
-    camera_serialnumber[j] = camera_lucid[j].nodemap.get_node("DeviceSerialNumber").value
-print(f"The calibration need to capture {calibration_image_count}pcs image.")
-for pcs in range(1, calibration_image_count + 1):
-    str = input(f"Starting capture the {pcs}th image(Y/N): ")
-    if str == "Y":
-        Trigger_Hardware.start_camera_capture(camera_lucid)
-    else:
-        continue
-Trigger_Hardware.destroy_camera()
-
-
-for i in range(len(camera_serialnumber)):
-    images = glob.glob(f"{camera_serialnumber[i]}*.png")
-    mnt, dist, mean_error =calibration_camera(images, mgrid_board, criteria, squaresize)
-    print(f"----------------------{camera_serialnumber[i]} calibration is Done-----------------------------")
-    print(f"mnt is: {mnt}\n dist is: {dist}\n mean_error is: {mean_error}pixel")
-    print("--------------------------------------------------------------------------------")
+if __name__ == "__main__":
+    criteria = (cv.TERM_CRITERIA_EPS + cv.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+    mgrid_board = (11, 8)
+    squaresize = 0.03 # girdm size 0.03m*0.03m
+    init_image.clean_exit_image()
+    init_image.clean_exit_npz()
+    # Get camera image, at least 10pcs
+    camera_serialnumber = {}
+    calibration_image_count = 1  # image pcs
+    camera_lucid = Trigger_Hardware.think_lucid_init()
+    for j in range(len(camera_lucid)):
+        camera_serialnumber[j] = camera_lucid[j].nodemap.get_node("DeviceSerialNumber").value
+    print(f"The calibration need to capture {calibration_image_count}pcs image.")
+    for pcs in range(1, calibration_image_count + 1):
+        str = input(f"Starting capture the {pcs}th image(Y/N): ")
+        if str == "Y":
+            Trigger_Hardware.start_camera_capture(camera_lucid)
+        else:
+            continue
+    Trigger_Hardware.destroy_camera()
+    for i in range(len(camera_serialnumber)):
+        images = glob.glob(f"{camera_serialnumber[i]}*.png")
+        mtx, dist, mean_error = calibration_camera_mgrid_board(images, mgrid_board, criteria, squaresize)
+        print(f"----------------------{camera_serialnumber[i]} calibration is Done-----------------------------")
+        print(f"mtx is: {mtx}\n dist is: {dist}\n mean_error is: {mean_error}pixel")
+        print("--------------------------------------------------------------------------------")
+        np.savez(f"{camera_serialnumber[i]}_cablication_parameter.npz", mtx=mtx, dist=dist, mean_error=mean_error)
